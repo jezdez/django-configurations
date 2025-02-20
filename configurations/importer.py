@@ -31,7 +31,13 @@ def install(check_options=False):
         orig_create_parser = base.BaseCommand.create_parser
 
         def create_parser(self, prog_name, subcommand):
+            # Since some subclasses of BaseCommand, procrastinate's in particular, assume that all
+            # but their own arguments are already defined when add_arguments is called, we're
+            # temporarily swapping it out for a no-op and call it later.
+            add_arguments = self.add_arguments
+            self.add_arguments = lambda *a, **k: None
             parser = orig_create_parser(self, prog_name, subcommand)
+
             if isinstance(parser, OptionParser):
                 # in case the option_list is set the create_parser
                 # will actually return a OptionParser for backward
@@ -43,6 +49,9 @@ def install(check_options=False):
                 # probably argparse, let's not import argparse though
                 parser.add_argument(CONFIGURATION_ARGUMENT,
                                     help=CONFIGURATION_ARGUMENT_HELP)
+
+            self.add_arguments = add_arguments
+            self.add_arguments(parser)
             return parser
 
         base.BaseCommand.create_parser = create_parser
